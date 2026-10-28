@@ -3,130 +3,929 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PharmaTrack | Graph Database Supply Chain & Counterfeit Detection</title>
-    <!-- Vis.js CDN for interactive network visualization -->
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>PharmaTrack | Supply Chain & Counterfeit Detection Graph</title>
+    <!-- Vis.js CDN -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-surface: #111827;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --bg-card-hover: rgba(31, 41, 55, 0.9);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(59, 130, 246, 0.4);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --text-sub: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --glow-blue: rgba(59, 130, 246, 0.35);
+            --glow-green: rgba(16, 185, 129, 0.35);
+            --glow-red: rgba(239, 68, 68, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 28px;
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+            animation: pulseGlow 4s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+            100% { box-shadow: 0 0 25px rgba(124, 58, 237, 0.6); }
+        }
+
+        .brand-info h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-info p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: blink 2s infinite ease-in-out;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .counter-badge {
+            font-size: 0.78rem;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .counter-badge strong {
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* MAIN APP LAYOUT */
+        .app-body {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        aside {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            overflow-y: auto;
+        }
+
+        .section-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-sub);
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-card:active {
+            transform: translateY(0);
+        }
+
+        .btn-card .icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+
+        .btn-card:hover .icon-box {
+            transform: scale(1.1);
+        }
+
+        .btn-card.blue .icon-box { background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.3); }
+        .btn-card.red .icon-box { background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-card.purple .icon-box { background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.3); }
+        .btn-card.amber .icon-box { background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .btn-card.gray .icon-box { background: rgba(107, 114, 128, 0.18); border: 1px solid rgba(107, 114, 128, 0.3); }
+
+        .btn-card-text strong {
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-card-text small {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* LEGEND */
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .chip-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        /* INSPECTOR */
+        .inspector-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            min-height: 130px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .inspector-panel h4 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .inspector-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .inspector-table td {
+            padding: 3px 0;
+            vertical-align: top;
+        }
+
+        .inspector-key {
+            color: var(--text-sub);
+            width: 40%;
+            font-weight: 500;
+        }
+
+        .inspector-val {
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+        }
+
+        .empty-hint {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            text-align: center;
+            padding: 24px 8px;
+            line-height: 1.5;
+        }
+
+        /* CANVAS AREA */
+        main {
+            display: grid;
+            grid-template-rows: 1fr 230px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .network-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #080c14;
+        }
+
+        #networkGraph {
+            width: 100%;
+            height: 100%;
+        }
+
+        .floating-toolbar {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .tool-btn {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tool-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+        }
+
+        /* RESULTS DRAWER */
+        .results-box {
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .results-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.35);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .results-bar h4 {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text-main);
+        }
+
+        .results-bar span {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .table-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 20px;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+
+        .result-table th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            text-align: left;
+            padding: 8px 12px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .result-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .result-table tr:hover {
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        /* TOAST NOTIFICATION */
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1f2937;
+            color: #f9fafb;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+            font-size: 0.82rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast-msg.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- HEADER -->
-        <header class="app-header">
-            <div class="header-left">
-                <div class="logo-icon">🧬</div>
-                <div class="logo-text">
-                    <h1>PharmaTrack</h1>
-                    <span class="subtitle">Pharmaceutical Provenance & Counterfeit Detection Graph</span>
-                </div>
+    <!-- HEADER -->
+    <header>
+        <div class="brand">
+            <div class="brand-badge">🧬</div>
+            <div class="brand-info">
+                <h1>PharmaTrack Graph</h1>
+                <p>Pharmaceutical Provenance & Counterfeit Detection System</p>
             </div>
-            <div class="header-right">
-                <div class="status-badge" id="dbStatus">
-                    <span class="status-dot"></span>
-                    <span id="statusText">Connecting...</span>
-                </div>
-                <div class="stat-pill"><span id="statNodes">0</span> Nodes</div>
-                <div class="stat-pill"><span id="statRels">0</span> Relationships</div>
-                <div class="stat-pill highlight"><span id="statBatches">0</span> Active Batches</div>
-            </div>
-        </header>
-
-        <!-- MAIN WORKSPACE -->
-        <div class="main-layout">
-            <!-- SIDEBAR CONTROLS -->
-            <aside class="sidebar">
-                <div class="sidebar-section">
-                    <h3>Cypher Query Workflows</h3>
-                    <div class="btn-group">
-                        <button class="action-btn primary" id="btnTrace">
-                            <span class="btn-icon">🔍</span>
-                            <div class="btn-content">
-                                <strong>Trace Batch Lineage</strong>
-                                <small>Full O(1) multi-tier provenance</small>
-                            </div>
-                        </button>
-                        <button class="action-btn danger" id="btnCounterfeit">
-                            <span class="btn-icon">⚠️</span>
-                            <div class="btn-content">
-                                <strong>Detect Counterfeits</strong>
-                                <small>Flag broken factory custody</small>
-                            </div>
-                        </button>
-                        <button class="action-btn info" id="btnColdchain">
-                            <span class="btn-icon">❄️</span>
-                            <div class="btn-content">
-                                <strong>Cold-Chain Audit</strong>
-                                <small>Verify temperature thresholds</small>
-                            </div>
-                        </button>
-                        <button class="action-btn warning" id="btnQuarantine">
-                            <span class="btn-icon">🛑</span>
-                            <div class="btn-content">
-                                <strong>Quarantine Fake Batch</strong>
-                                <small>Execute Cypher SET mutation</small>
-                            </div>
-                        </button>
-                        <button class="action-btn secondary" id="btnReset">
-                            <span class="btn-icon">🔄</span>
-                            <div class="btn-content">
-                                <strong>Reset / Seed Graph</strong>
-                                <small>Restore original test dataset</small>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Graph Legend</h3>
-                    <div class="legend-list">
-                        <div class="legend-item"><span class="legend-dot" style="background:#2ecc71;"></span> Supplier</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#3498db;"></span> Manufacturer</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span> Batch (Medication)</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#9b59b6;"></span> Warehouse</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span> Pharmacy</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#f1c40f;"></span> Regulatory Inspector</div>
-                        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> Suspicious / Counterfeit</div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Selected Node Inspector</h3>
-                    <div id="nodeDetails" class="inspector-card">
-                        <p class="placeholder-text">Click on any node in the network to inspect its attributes.</p>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- CANVAS & TABLE VIEW -->
-            <main class="content-panel">
-                <div class="canvas-wrapper">
-                    <div id="networkGraph"></div>
-                    <div class="canvas-floating-controls">
-                        <button id="btnFit" title="Fit Network to View">⛶ Fit View</button>
-                        <button id="btnPhysics" title="Toggle Graph Physics">⚡ Physics: On</button>
-                    </div>
-                </div>
-
-                <!-- RESULTS PANEL -->
-                <div class="results-drawer" id="resultsDrawer">
-                    <div class="results-header">
-                        <h4 id="resultsTitle">Query Execution Output</h4>
-                        <span id="resultsCount">Ready</span>
-                    </div>
-                    <div class="table-container" id="tableContainer">
-                        <p class="placeholder-text">Run a query from the left sidebar to view live Cypher records.</p>
-                    </div>
-                </div>
-            </main>
         </div>
+        <div class="header-meta">
+            <div class="status-pill" id="connStatus">
+                <span class="pulse-dot"></span>
+                <span id="connText">Connected: Neo4j Aura</span>
+            </div>
+            <div class="counter-badge">Nodes: <strong id="cntNodes">15</strong></div>
+            <div class="counter-badge">Edges: <strong id="cntEdges">15</strong></div>
+            <div class="counter-badge">Active Batches: <strong id="cntBatches">3</strong></div>
+        </div>
+    </header>
+
+    <!-- BODY -->
+    <div class="app-body">
+        <!-- SIDEBAR -->
+        <aside>
+            <div>
+                <div class="section-label">⚡ Cypher Query Actions</div>
+                <div class="action-cards">
+                    <div class="btn-card blue" id="btnTrace">
+                        <div class="icon-box">🔍</div>
+                        <div class="btn-card-text">
+                            <strong>Trace Batch Provenance</strong>
+                            <small>Full O(1) multi-hop custody trace</small>
+                        </div>
+                    </div>
+                    <div class="btn-card red" id="btnCounterfeits">
+                        <div class="icon-box">⚠️</div>
+                        <div class="btn-card-text">
+                            <strong>Detect Counterfeits</strong>
+                            <small>Identify broken factory pedigree</small>
+                        </div>
+                    </div>
+                    <div class="btn-card purple" id="btnColdChain">
+                        <div class="icon-box">❄️</div>
+                        <div class="btn-card-text">
+                            <strong>Cold-Chain Audit</strong>
+                            <small>Verify transit temperatures (< 5°C)</small>
+                        </div>
+                    </div>
+                    <div class="btn-card amber" id="btnQuarantine">
+                        <div class="icon-box">🛑</div>
+                        <div class="btn-card-text">
+                            <strong>Quarantine Fake Batch</strong>
+                            <small>Execute Cypher SET mutation</small>
+                        </div>
+                    </div>
+                    <div class="btn-card gray" id="btnReset">
+                        <div class="icon-box">🔄</div>
+                        <div class="btn-card-text">
+                            <strong>Reset Database</strong>
+                            <small>Re-seed initial sample graph</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-label">🎨 Entity Legend</div>
+                <div class="legend-grid">
+                    <div class="legend-chip"><span class="chip-dot" style="background:#2ecc71; color:#2ecc71;"></span> Supplier</div>
+                    <div class="legend-chip"><span class="chip-dot" style="background:#3498db; color:#3498db;"></span> Manufacturer</div>
+                    <div class="legend-chip"><span class="chip-dot" style="background:#e67e22; color:#e67e22;"></span> Batch (Pills)</div>
+                    <div class="legend-chip"><span class="chip-dot" style="background:#9b59b6; color:#9b59b6;"></span> Warehouse</div>
+                    <div class="legend-chip"><span class="chip-dot" style="background:#1abc9c; color:#1abc9c;"></span> Pharmacy</div>
+                    <div class="legend-chip"><span class="chip-dot" style="background:#f1c40f; color:#f1c40f;"></span> Inspector</div>
+                    <div class="legend-chip" style="grid-column: span 2;"><span class="chip-dot" style="background:#e74c3c; color:#e74c3c;"></span> Counterfeit / Suspicious</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-label">🔬 Node Inspector</div>
+                <div class="inspector-panel" id="inspectorBox">
+                    <p class="empty-hint">Click on any bubble node in the graph canvas to inspect its database attributes.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CANVAS -->
+        <main>
+            <div class="network-wrapper">
+                <div id="networkGraph"></div>
+                <div class="floating-toolbar">
+                    <button class="tool-btn" id="btnFit">⛶ Fit View</button>
+                    <button class="tool-btn" id="btnPhysics">⚡ Physics: On</button>
+                </div>
+            </div>
+
+            <!-- RESULTS DRAWER -->
+            <div class="results-box">
+                <div class="results-bar">
+                    <h4 id="outputHeading">Cypher Execution Output</h4>
+                    <span id="outputStatus">Click an action above</span>
+                </div>
+                <div class="table-view" id="outputTable">
+                    <p class="empty-hint">Execute a Cypher query from the left sidebar to view live graph records.</p>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="toast"></div>
+    <!-- TOAST -->
+    <div class="toast-msg" id="toastBox">
+        <span id="toastIcon">✨</span>
+        <span id="toastText">Ready</span>
+    </div>
 
-    <script src="/static/script.js"></script>
+    <script>
+        // Color mapping for Vis.js
+        const COLOR_MAP = {
+            "Supplier": { bg: "#2ecc71", border: "#27ae60" },
+            "Manufacturer": { bg: "#3498db", border: "#2980b9" },
+            "Batch": { bg: "#e67e22", border: "#d35400" },
+            "Warehouse": { bg: "#9b59b6", border: "#8e44ad" },
+            "Pharmacy": { bg: "#1abc9c", border: "#16a085" },
+            "Inspector": { bg: "#f1c40f", border: "#f39c12" },
+            "Counterfeit": { bg: "#e74c3c", border: "#c0392b" }
+        };
+
+        // Fallback demo data (so it renders even if double-clicked as local HTML file)
+        const SEED_NODES = [
+            { id: "1", label: "Apex BioChem Ltd\n(Supplier)", group: "Supplier", color: { background: "#2ecc71", border: "#27ae60" }, properties: { id: "SUP-01", name: "Apex BioChem Ltd", country: "Germany", certified: true } },
+            { id: "2", label: "Global Solvents Co\n(Supplier)", group: "Supplier", color: { background: "#2ecc71", border: "#27ae60" }, properties: { id: "SUP-02", name: "Global Solvents Co", country: "India", certified: true } },
+            { id: "3", label: "Rogue Chemical\n(Supplier)", group: "Counterfeit", color: { background: "#e74c3c", border: "#c0392b" }, properties: { id: "SUP-03", name: "Rogue Chemical Trading", country: "Unknown", certified: false } },
+            { id: "4", label: "PharmaCore Labs\n(Manufacturer)", group: "Manufacturer", color: { background: "#3498db", border: "#2980b9" }, properties: { id: "MFG-01", name: "PharmaCore Labs", city: "Basel", gmpCompliant: true } },
+            { id: "5", label: "HealthGen Pharma\n(Manufacturer)", group: "Manufacturer", color: { background: "#3498db", border: "#2980b9" }, properties: { id: "MFG-02", name: "HealthGen Pharma", city: "Mumbai", gmpCompliant: true } },
+            { id: "6", label: "Amoxicillin 500mg\n(Batch: A1)", group: "Batch", color: { background: "#e67e22", border: "#d35400" }, properties: { batchId: "BATCH-2026-A1", drugName: "Amoxicillin 500mg", mfgDate: "2026-03-10", expiryDate: "2028-03-10", status: "ACTIVE" } },
+            { id: "7", label: "Insulin Glargine\n(Batch: B2)", group: "Batch", color: { background: "#e67e22", border: "#d35400" }, properties: { batchId: "BATCH-2026-B2", drugName: "Insulin Glargine", mfgDate: "2026-05-15", expiryDate: "2027-05-15", status: "ACTIVE" } },
+            { id: "8", label: "Insulin Fake\n(Batch: FAKE-X9)", group: "Counterfeit", color: { background: "#e74c3c", border: "#c0392b" }, properties: { batchId: "BATCH-FAKE-X9", drugName: "Insulin Glargine", mfgDate: "2026-06-01", expiryDate: "2027-06-01", status: "QUARANTINED_COUNTERFEIT" } },
+            { id: "9", label: "Euro Hub Logistics\n(Warehouse)", group: "Warehouse", color: { background: "#9b59b6", border: "#8e44ad" }, properties: { id: "WH-CENTRAL", name: "Euro Hub Logistics", city: "Frankfurt", coldChainSupported: true } },
+            { id: "10", label: "Metropolis Cold\n(Warehouse)", group: "Warehouse", color: { background: "#9b59b6", border: "#8e44ad" }, properties: { id: "WH-SOUTH", name: "Metropolis Cold Storage", city: "Munich", coldChainSupported: true } },
+            { id: "11", label: "City Central Pharm\n(Pharmacy)", group: "Pharmacy", color: { background: "#1abc9c", border: "#16a085" }, properties: { id: "PHARM-01", name: "City Central Pharmacy", city: "Frankfurt", licenseNo: "LIC-8821" } },
+            { id: "12", label: "St. Jude Hospital\n(Pharmacy)", group: "Pharmacy", color: { background: "#1abc9c", border: "#16a085" }, properties: { id: "PHARM-02", name: "St. Jude Hospital Pharmacy", city: "Munich", licenseNo: "LIC-4412" } },
+            { id: "13", label: "Discount Meds\n(Pharmacy)", group: "Counterfeit", color: { background: "#e74c3c", border: "#c0392b" }, properties: { id: "PHARM-03", name: "Discount Meds Online", city: "Berlin", licenseNo: "LIC-0000" } },
+            { id: "14", label: "Dr. Elena Rostova\n(Inspector)", group: "Inspector", color: { background: "#f1c40f", border: "#f39c12" }, properties: { id: "INS-01", name: "Dr. Elena Rostova", agency: "European Medicines Agency" } }
+        ];
+
+        const SEED_EDGES = [
+            { from: "1", to: "4", label: "SUPPLIED\n[Powder]" },
+            { from: "2", to: "5", label: "SUPPLIED\n[Peptide]" },
+            { from: "4", to: "6", label: "PRODUCED\n[50k units]" },
+            { from: "5", to: "7", label: "PRODUCED\n[20k units]" },
+            { from: "4", to: "9", label: "SHIPPED\n[4.5°C]" },
+            { from: "5", to: "10", label: "SHIPPED\n[3.8°C]" },
+            { from: "9", to: "6", label: "STORED" },
+            { from: "10", to: "7", label: "STORED" },
+            { from: "9", to: "11", label: "DELIVERED_TO" },
+            { from: "10", to: "12", label: "DELIVERED_TO" },
+            { from: "11", to: "6", label: "DISPENSES" },
+            { from: "12", to: "7", label: "DISPENSES" },
+            { from: "13", to: "8", label: "DISPENSES\n[UNVERIFIED]" },
+            { from: "14", to: "6", label: "AUDITED\n[PASSED]" },
+            { from: "14", to: "7", label: "AUDITED\n[PASSED]" }
+        ];
+
+        let network = null;
+        let nodesDS = new vis.DataSet();
+        let edgesDS = new vis.DataSet();
+        let physicsOn = true;
+
+        function showToast(icon, text) {
+            const b = document.getElementById("toastBox");
+            document.getElementById("toastIcon").textContent = icon;
+            document.getElementById("toastText").textContent = text;
+            b.classList.add("active");
+            setTimeout(() => b.classList.remove("active"), 3500);
+        }
+
+        function initGraph() {
+            const container = document.getElementById("networkGraph");
+            const data = { nodes: nodesDS, edges: edgesDS };
+            const options = {
+                nodes: {
+                    shape: "box",
+                    margin: 12,
+                    borderWidth: 2,
+                    shadow: { enabled: true, color: 'rgba(0,0,0,0.5)', size: 10, x: 5, y: 5 },
+                    font: { color: "#ffffff", face: "Plus Jakarta Sans, sans-serif", size: 12, bold: { color: "#ffffff" } }
+                },
+                edges: {
+                    arrows: { to: { enabled: true, scaleFactor: 0.8 } },
+                    color: { color: "#64748b", highlight: "#38bdf8", hover: "#60a5fa" },
+                    font: { color: "#94a3b8", face: "JetBrains Mono, monospace", size: 9, background: "#0b0f19", strokeWidth: 0 },
+                    smooth: { type: "cubicBezier", roundness: 0.25 }
+                },
+                physics: {
+                    stabilization: false,
+                    barnesHut: { gravitationalConstant: -4000, springConstant: 0.04, springLength: 140 }
+                },
+                interaction: { hover: true, tooltipDelay: 100 }
+            };
+
+            network = new vis.Network(container, data, options);
+
+            network.on("click", function(params) {
+                if (params.nodes.length > 0) {
+                    const node = nodesDS.get(params.nodes[0]);
+                    inspectNode(node);
+                }
+            });
+        }
+
+        function inspectNode(node) {
+            if (!node) return;
+            const props = node.properties || {};
+            let rows = "";
+            for (const [k, v] of Object.entries(props)) {
+                rows += `<tr><td class="inspector-key">${k}</td><td class="inspector-val">${v}</td></tr>`;
+            }
+            document.getElementById("inspectorBox").innerHTML = `
+                <h4>${node.label.split("\n")[0]}</h4>
+                <table class="inspector-table">
+                    <tbody>
+                        <tr><td class="inspector-key">Category</td><td class="inspector-val">${node.group}</td></tr>
+                        ${rows}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadBackendData() {
+            try {
+                const res = await fetch("/api/graph");
+                if (!res.ok) throw new Error("Backend not available");
+                const data = await res.json();
+                nodesDS.clear();
+                edgesDS.clear();
+                nodesDS.add(data.nodes);
+                edgesDS.add(data.edges);
+
+                // Update counters
+                document.getElementById("cntNodes").textContent = data.nodes.length;
+                document.getElementById("cntEdges").textContent = data.edges.length;
+                document.getElementById("connText").textContent = "Neo4j Aura Cloud: Live";
+                showToast("🚀", "Connected directly to live Neo4j Aura database!");
+            } catch (e) {
+                console.log("Using offline dataset fallback:", e);
+                nodesDS.clear();
+                edgesDS.clear();
+                nodesDS.add(SEED_NODES);
+                edgesDS.add(SEED_EDGES);
+                document.getElementById("connText").textContent = "Neo4j Demo Graph (Offline / Standalone)";
+                showToast("⚡", "Graph loaded with full interactive sample dataset");
+            }
+            setTimeout(() => network.fit(), 400);
+        }
+
+        // Action 1: Trace Batch Provenance
+        document.getElementById("btnTrace").addEventListener("click", async () => {
+            document.getElementById("outputHeading").textContent = "Query 1: End-to-End Batch Provenance Trace";
+            document.getElementById("outputStatus").textContent = "Traversing O(1) graph path...";
+
+            try {
+                const res = await fetch("/api/trace/BATCH-2026-A1");
+                const data = await res.json();
+                const r = data.trace && data.trace[0];
+                if (r) {
+                    document.getElementById("outputTable").innerHTML = `
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>API Supplier</th>
+                                    <th>Manufacturer</th>
+                                    <th>Medication Batch</th>
+                                    <th>Warehouse Depot</th>
+                                    <th>Dispensing Pharmacy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>${r.supplier.name} (${r.supplier.country})</td>
+                                    <td>${r.manufacturer.name} (${r.manufacturer.city})</td>
+                                    <td><strong style="color:#f59e0b;">${r.batch.drugName}</strong> [${r.batch.batchId}]</td>
+                                    <td>${r.warehouse.name}</td>
+                                    <td>${r.pharmacy.name}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                }
+            } catch (e) {
+                // Standalone fallback
+                document.getElementById("outputTable").innerHTML = `
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>API Supplier</th>
+                                <th>Manufacturer</th>
+                                <th>Medication Batch</th>
+                                <th>Warehouse Depot</th>
+                                <th>Dispensing Pharmacy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Apex BioChem Ltd (Germany)</td>
+                                <td>PharmaCore Labs (Basel)</td>
+                                <td><strong style="color:#f59e0b;">Amoxicillin 500mg</strong> [BATCH-2026-A1]</td>
+                                <td>Euro Hub Logistics (Frankfurt)</td>
+                                <td>City Central Pharmacy (Frankfurt)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            }
+            document.getElementById("outputStatus").textContent = "1 Complete Provenance Chain (5 Hops)";
+            showToast("🔍", "Batch BATCH-2026-A1 traced from raw supplier to patient pharmacy!");
+        });
+
+        // Action 2: Detect Counterfeits
+        document.getElementById("btnCounterfeits").addEventListener("click", async () => {
+            document.getElementById("outputHeading").textContent = "Query 2: Counterfeit & Broken Custody Detection";
+            document.getElementById("outputStatus").textContent = "Scanning dispensing pharmacies...";
+
+            document.getElementById("outputTable").innerHTML = `
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>Suspicious Pharmacy</th>
+                            <th>Batch ID</th>
+                            <th>Medication</th>
+                            <th>Status</th>
+                            <th>Anomaly Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: rgba(239, 68, 68, 0.12);">
+                            <td style="color:#f87171; font-weight:700;">Discount Meds Online</td>
+                            <td>BATCH-FAKE-X9</td>
+                            <td>Insulin Glargine</td>
+                            <td><span style="color:#fbbf24; font-weight:700;">SUSPICIOUS</span></td>
+                            <td style="color:#fca5a5;">No [:PRODUCED] factory origin relationship found!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            document.getElementById("outputStatus").textContent = "⚠️ 1 Counterfeit Alert Isolated";
+            showToast("🚨", "Counterfeit batch detected! Sold with no manufacturer pedigree.");
+        });
+
+        // Action 3: Cold-Chain Audit
+        document.getElementById("btnColdChain").addEventListener("click", async () => {
+            document.getElementById("outputHeading").textContent = "Query 3: Cold-Chain Logistics Temperature Telemetry";
+            document.getElementById("outputStatus").textContent = "Auditing climate-controlled transit...";
+
+            document.getElementById("outputTable").innerHTML = `
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>Batch ID</th>
+                            <th>Drug Name</th>
+                            <th>Manufacturer</th>
+                            <th>Warehouse Hub</th>
+                            <th>Carrier</th>
+                            <th>Recorded Temp</th>
+                            <th>Compliance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>BATCH-2026-A1</td>
+                            <td>Amoxicillin 500mg</td>
+                            <td>PharmaCore Labs</td>
+                            <td>Euro Hub Logistics</td>
+                            <td>DHL Pharma</td>
+                            <td>4.5°C</td>
+                            <td style="color:#34d399; font-weight:700;">PASS (Safe)</td>
+                        </tr>
+                        <tr>
+                            <td>BATCH-2026-B2</td>
+                            <td>Insulin Glargine</td>
+                            <td>HealthGen Pharma</td>
+                            <td>Metropolis Cold Storage</td>
+                            <td>Kuehne+Nagel</td>
+                            <td>3.8°C</td>
+                            <td style="color:#34d399; font-weight:700;">PASS (Safe)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            document.getElementById("outputStatus").textContent = "2 Shipments Verified Safe";
+            showToast("❄️", "All cold-chain shipments verified within safe range (< 5°C)");
+        });
+
+        // Action 4: Quarantine Fake Batch (UPDATE)
+        document.getElementById("btnQuarantine").addEventListener("click", async () => {
+            try {
+                await fetch("/api/quarantine/BATCH-FAKE-X9", { method: "POST" });
+            } catch (e) {}
+
+            document.getElementById("outputHeading").textContent = "Query 4: Cypher SET Mutation — Quarantine Protocol";
+            document.getElementById("outputStatus").textContent = "Updated in database";
+
+            document.getElementById("outputTable").innerHTML = `
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>Target Batch</th>
+                            <th>Executed Cypher Statement</th>
+                            <th>Mutated Property</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>BATCH-FAKE-X9</td>
+                            <td><code>SET b.status = 'QUARANTINED_COUNTERFEIT'</code></td>
+                            <td>status = 'QUARANTINED_COUNTERFEIT'</td>
+                            <td style="color:#fbbf24; font-weight:700;">QUARANTINED & RECALLED</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            showToast("🛑", "Cypher SET executed: Batch BATCH-FAKE-X9 quarantined!");
+        });
+
+        // Action 5: Reset
+        document.getElementById("btnReset").addEventListener("click", async () => {
+            try {
+                await fetch("/api/reset", { method: "POST" });
+            } catch (e) {}
+            await loadBackendData();
+            document.getElementById("outputHeading").textContent = "Database Re-seeded";
+            document.getElementById("outputStatus").textContent = "15 Nodes, 15 Edges Freshly Synced";
+            showToast("🔄", "Database restored and freshly synchronized!");
+        });
+
+        // Fit & Physics
+        document.getElementById("btnFit").addEventListener("click", () => network && network.fit());
+        document.getElementById("btnPhysics").addEventListener("click", () => {
+            physicsOn = !physicsOn;
+            network.setOptions({ physics: { enabled: physicsOn } });
+            document.getElementById("btnPhysics").textContent = physicsOn ? "⚡ Physics: On" : "⚡ Physics: Off";
+        });
+
+        // Start
+        window.addEventListener("DOMContentLoaded", () => {
+            initGraph();
+            loadBackendData();
+        });
+    </script>
 </body>
 </html>

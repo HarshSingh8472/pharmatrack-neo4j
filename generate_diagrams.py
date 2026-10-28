@@ -175,3 +175,4 @@ trace_path = os.path.join(output_dir, "provenance_trace.png")
 plt.savefig(trace_path, bbox_inches="tight")
 plt.close()
 print("Saved provenance trace diagram to:", trace_path)
+

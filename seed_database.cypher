@@ -91,3 +91,4 @@ RETURN b.batchId AS Batch, b.status AS UpdatedStatus, b.flaggedDate AS FlagDate;
 MATCH (s:Supplier {id: 'SUP-03'})-[r:SUPPLIED]->()
 DELETE r
 RETURN count(r) AS DeletedRelationships;
+
