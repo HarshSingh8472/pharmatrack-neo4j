@@ -10,7 +10,7 @@ app = Flask(__name__)
 NEO4J_URI = os.getenv("NEO4J_URI", "neo4j+s://12a3ba9d.databases.neo4j.io")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "12a3ba9d")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "9NiLss2g1BmDObmtgWXgOLq3rVFBCAx4AfUmaFwhDKA")
-NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
+NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "12a3ba9d")
 
 def get_driver():
     return GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
@@ -21,15 +21,15 @@ def get_session(driver):
         return driver.session(database=db)
     return driver.session()
 
-# Color palette for graph visualization
-GROUP_COLORS = {
-    "Supplier": {"background": "#2ecc71", "border": "#27ae60", "highlight": "#2ecc71"},
-    "Manufacturer": {"background": "#3498db", "border": "#2980b9", "highlight": "#3498db"},
-    "Batch": {"background": "#e67e22", "border": "#d35400", "highlight": "#e67e22"},
-    "Warehouse": {"background": "#9b59b6", "border": "#8e44ad", "highlight": "#9b59b6"},
-    "Pharmacy": {"background": "#1abc9c", "border": "#16a085", "highlight": "#1abc9c"},
-    "Inspector": {"background": "#f1c40f", "border": "#f39c12", "highlight": "#f1c40f"},
-    "Counterfeit": {"background": "#e74c3c", "border": "#c0392b", "highlight": "#e74c3c"}
+# Distinct Neo4j bubble styling
+NODE_COLORS = {
+    "Supplier": {"background": "#10b981", "border": "#059669", "highlight": {"background": "#34d399", "border": "#10b981"}},
+    "Manufacturer": {"background": "#3b82f6", "border": "#2563eb", "highlight": {"background": "#60a5fa", "border": "#3b82f6"}},
+    "Batch": {"background": "#f59e0b", "border": "#d97706", "highlight": {"background": "#fbbf24", "border": "#f59e0b"}},
+    "Warehouse": {"background": "#8b5cf6", "border": "#7c3aed", "highlight": {"background": "#a78bfa", "border": "#8b5cf6"}},
+    "Pharmacy": {"background": "#06b6d4", "border": "#0891b2", "highlight": {"background": "#22d3ee", "border": "#06b6d4"}},
+    "Inspector": {"background": "#eab308", "border": "#ca8a04", "highlight": {"background": "#fde047", "border": "#eab308"}},
+    "Counterfeit": {"background": "#ef4444", "border": "#dc2626", "highlight": {"background": "#f87171", "border": "#ef4444"}}
 }
 
 @app.route("/")
@@ -66,66 +66,58 @@ def get_graph():
                 RETURN n, r, m
                 """
                 result = session.run(query)
-                nodes_dict = {}
+
+                id_map = {}
+                nodes = []
                 edges = []
+
+                def get_clean_id(element_id):
+                    if element_id not in id_map:
+                        id_map[element_id] = f"node_{len(id_map) + 1}"
+                    return id_map[element_id]
+
+                added_nodes = set()
 
                 for record in result:
                     n = record["n"]
                     r = record["r"]
                     m = record["m"]
 
-                    if n and n.element_id not in nodes_dict:
-                        labels = list(n.labels)
-                        label = labels[0] if labels else "Node"
-                        props = dict(n)
-                        display_name = props.get("name") or props.get("batchId") or props.get("id") or label
-                        
-                        group = label
-                        if label == "Batch" and ("COUNTERFEIT" in props.get("status", "") or props.get("status") == "SUSPICIOUS"):
-                            group = "Counterfeit"
+                    for node in [n, m]:
+                        if node and node.element_id not in added_nodes:
+                            added_nodes.add(node.element_id)
+                            labels = list(node.labels)
+                            label = labels[0] if labels else "Entity"
+                            props = dict(node)
+                            display_name = props.get("name") or props.get("batchId") or props.get("id") or label
+                            
+                            group = label
+                            if label == "Batch" and ("COUNTERFEIT" in props.get("status", "") or props.get("status") == "SUSPICIOUS"):
+                                group = "Counterfeit"
 
-                        nodes_dict[n.element_id] = {
-                            "id": n.element_id,
-                            "label": f"{display_name}\n({label})",
-                            "group": group,
-                            "color": GROUP_COLORS.get(group, {"background": "#95a5a6", "border": "#7f8c8d"}),
-                            "properties": props,
-                            "nodeType": label
-                        }
+                            color_cfg = NODE_COLORS.get(group, {"background": "#64748b", "border": "#475569"})
 
-                    if m and m.element_id not in nodes_dict:
-                        labels = list(m.labels)
-                        label = labels[0] if labels else "Node"
-                        props = dict(m)
-                        display_name = props.get("name") or props.get("batchId") or props.get("id") or label
+                            nodes.append({
+                                "id": get_clean_id(node.element_id),
+                                "label": f"{display_name}\n[{label}]",
+                                "group": group,
+                                "color": color_cfg,
+                                "properties": props,
+                                "nodeType": label,
+                                "title": f"<b>{display_name}</b><br>Type: {label}"
+                            })
 
-                        group = label
-                        if label == "Batch" and ("COUNTERFEIT" in props.get("status", "") or props.get("status") == "SUSPICIOUS"):
-                            group = "Counterfeit"
-
-                        nodes_dict[m.element_id] = {
-                            "id": m.element_id,
-                            "label": f"{display_name}\n({label})",
-                            "group": group,
-                            "color": GROUP_COLORS.get(group, {"background": "#95a5a6", "border": "#7f8c8d"}),
-                            "properties": props,
-                            "nodeType": label
-                        }
-
-                    if r:
+                    if r and n and m:
                         edges.append({
-                            "id": r.element_id,
-                            "from": n.element_id,
-                            "to": m.element_id,
+                            "id": f"edge_{len(edges) + 1}",
+                            "from": get_clean_id(n.element_id),
+                            "to": get_clean_id(m.element_id),
                             "label": r.type,
                             "properties": dict(r),
                             "arrows": "to"
                         })
 
-                return jsonify({
-                    "nodes": list(nodes_dict.values()),
-                    "edges": edges
-                })
+                return jsonify({"nodes": nodes, "edges": edges})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -195,7 +187,7 @@ def quarantine_batch(batch_id):
             with get_session(driver) as session:
                 query = """
                 MATCH (b:Batch {batchId: $batch_id})
-                SET b.status = 'QUARANTINED_COUNTERFEIT', b.flaggedDate = date()
+                SET b.status = 'QUARANTINED_COUNTERFEIT', b.flaggedDate = '2026-10-28'
                 RETURN b.batchId AS batchId, b.status AS status
                 """
                 result = session.run(query, batch_id=batch_id).single()
