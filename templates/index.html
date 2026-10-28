@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaTrack | Graph Database Supply Chain & Counterfeit Detection</title>
+    <!-- Vis.js CDN for interactive network visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-icon">🧬</div>
+                <div class="logo-text">
+                    <h1>PharmaTrack</h1>
+                    <span class="subtitle">Pharmaceutical Provenance & Counterfeit Detection Graph</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="status-badge" id="dbStatus">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <div class="stat-pill"><span id="statNodes">0</span> Nodes</div>
+                <div class="stat-pill"><span id="statRels">0</span> Relationships</div>
+                <div class="stat-pill highlight"><span id="statBatches">0</span> Active Batches</div>
+            </div>
+        </header>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="main-layout">
+            <!-- SIDEBAR CONTROLS -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>Cypher Query Workflows</h3>
+                    <div class="btn-group">
+                        <button class="action-btn primary" id="btnTrace">
+                            <span class="btn-icon">🔍</span>
+                            <div class="btn-content">
+                                <strong>Trace Batch Lineage</strong>
+                                <small>Full O(1) multi-tier provenance</small>
+                            </div>
+                        </button>
+                        <button class="action-btn danger" id="btnCounterfeit">
+                            <span class="btn-icon">⚠️</span>
+                            <div class="btn-content">
+                                <strong>Detect Counterfeits</strong>
+                                <small>Flag broken factory custody</small>
+                            </div>
+                        </button>
+                        <button class="action-btn info" id="btnColdchain">
+                            <span class="btn-icon">❄️</span>
+                            <div class="btn-content">
+                                <strong>Cold-Chain Audit</strong>
+                                <small>Verify temperature thresholds</small>
+                            </div>
+                        </button>
+                        <button class="action-btn warning" id="btnQuarantine">
+                            <span class="btn-icon">🛑</span>
+                            <div class="btn-content">
+                                <strong>Quarantine Fake Batch</strong>
+                                <small>Execute Cypher SET mutation</small>
+                            </div>
+                        </button>
+                        <button class="action-btn secondary" id="btnReset">
+                            <span class="btn-icon">🔄</span>
+                            <div class="btn-content">
+                                <strong>Reset / Seed Graph</strong>
+                                <small>Restore original test dataset</small>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Graph Legend</h3>
+                    <div class="legend-list">
+                        <div class="legend-item"><span class="legend-dot" style="background:#2ecc71;"></span> Supplier</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#3498db;"></span> Manufacturer</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#e67e22;"></span> Batch (Medication)</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#9b59b6;"></span> Warehouse</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#1abc9c;"></span> Pharmacy</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#f1c40f;"></span> Regulatory Inspector</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c;"></span> Suspicious / Counterfeit</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Selected Node Inspector</h3>
+                    <div id="nodeDetails" class="inspector-card">
+                        <p class="placeholder-text">Click on any node in the network to inspect its attributes.</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CANVAS & TABLE VIEW -->
+            <main class="content-panel">
+                <div class="canvas-wrapper">
+                    <div id="networkGraph"></div>
+                    <div class="canvas-floating-controls">
+                        <button id="btnFit" title="Fit Network to View">⛶ Fit View</button>
+                        <button id="btnPhysics" title="Toggle Graph Physics">⚡ Physics: On</button>
+                    </div>
+                </div>
+
+                <!-- RESULTS PANEL -->
+                <div class="results-drawer" id="resultsDrawer">
+                    <div class="results-header">
+                        <h4 id="resultsTitle">Query Execution Output</h4>
+                        <span id="resultsCount">Ready</span>
+                    </div>
+                    <div class="table-container" id="tableContainer">
+                        <p class="placeholder-text">Run a query from the left sidebar to view live Cypher records.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
